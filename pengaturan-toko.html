@@ -1,30 +1,67 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Pengaturan Toko - Panel Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/auth-guard.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
-    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
-        <h1 class="text-xl font-bold mb-4">Pengaturan Toko & Banner Gift</h1>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 max-w-xl space-y-4">
-            <div>
-                <label class="block text-sm font-medium mb-1">Status Mode Maintenance</label>
-                <select id="maintenance-mode" class="w-full border rounded p-2 text-sm">
-                    <option value="false">Toko Aktif (Normal)</option>
-                    <option value="true">Aktifkan Maintenance</option>
-                </select>
-            </div>
-            <button onclick="alert('Pengaturan disimpan!')" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Simpan Pengaturan</button>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="firebase-init.js"></script>
-<script src="auth-guard.js"></script>
-</body>
-</html>
+<script>
+
+const ref =
+database.ref("settings");
+
+// =====================
+// LOAD
+// =====================
+
+ref.on("value",(snap)=>{
+
+if(!snap.exists()) return;
+
+const s=snap.val();
+
+document.getElementById("shop-name").value =
+s.namaToko || "";
+
+document.getElementById("banner-text").value =
+s.banner || "";
+
+document.getElementById("shop-whatsapp").value =
+s.whatsapp || "";
+
+document.getElementById("shop-address").value =
+s.alamat || "";
+
+document.getElementById("maintenance-mode").value =
+String(s.maintenance || false);
+
+});
+
+// =====================
+// SAVE
+// =====================
+
+document
+.getElementById("btn-save")
+
+.addEventListener("click",()=>{
+
+ref.update({
+
+namaToko:
+document.getElementById("shop-name").value,
+
+banner:
+document.getElementById("banner-text").value,
+
+whatsapp:
+document.getElementById("shop-whatsapp").value,
+
+alamat:
+document.getElementById("shop-address").value,
+
+maintenance:
+document.getElementById("maintenance-mode").value==="true",
+
+updatedAt:Date.now()
+
+});
+
+alert("Pengaturan berhasil disimpan.");
+
+});
+
+</script>
