@@ -1,45 +1,128 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Tambah Produk - Panel Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/auth-guard.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
-    <!-- Masukkan struktur sidebar sama seperti dashboard -->
-    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
-        <h1 class="text-xl font-bold mb-4">Form Tambah Produk Baru</h1>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 max-w-2xl">
-            <form id="form-add-product" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Nama Produk</label>
-                    <input type="text" id="prod-name" class="w-full border rounded p-2 text-sm" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Harga (Rp)</label>
-                    <input type="number" id="prod-price" class="w-full border rounded p-2 text-sm" required>
-                </div>
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Simpan Produk</button>
-            </form>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="firebase-init.js"></script>
-<script src="auth-guard.js"></script>
-    <script>
-        document.getElementById('form-add-product').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('prod-name').value;
-            const price = document.getElementById('prod-price').value;
-            database.ref('products').push({ name, price, createdAt: Date.now() }).then(() => {
-                alert('Produk berhasil ditambahkan!');
-                this.reset();
-            });
-        });
-    </script>
-</body>
-</html>
+<script>
+
+const kategoriSelect =
+document.getElementById("prod-category");
+
+// =====================
+// LOAD KATEGORI
+// =====================
+
+database.ref("kategori")
+.on("value",snap=>{
+
+kategoriSelect.innerHTML="";
+
+snap.forEach(item=>{
+
+let nama=item.val().nama || item.val();
+
+kategoriSelect.innerHTML+=`
+
+<option>
+
+${nama}
+
+</option>
+
+`;
+
+});
+
+});
+
+// =====================
+// SIMPAN PRODUK
+// =====================
+
+document
+.getElementById("form-add-product")
+
+.addEventListener("submit",
+
+async function(e){
+
+e.preventDefault();
+
+const nama =
+document.getElementById("prod-name").value;
+
+const harga =
+Number(document.getElementById("prod-price").value);
+
+const kategori =
+document.getElementById("prod-category").value;
+
+const lokasi =
+document.getElementById("prod-location").value;
+
+const layanan =
+document.getElementById("prod-service").value;
+
+const deskripsi =
+document.getElementById("prod-description").value;
+
+const allowCredit =
+document.getElementById("prod-credit").checked;
+
+let listFoto=[];
+
+// upload gambar
+
+const file =
+document.getElementById("prod-image").files[0];
+
+if(file){
+
+const namaFile=
+"produk/"+Date.now()+"_"+file.name;
+
+const ref=
+storage.ref(namaFile);
+
+await ref.put(file);
+
+const url=
+await ref.getDownloadURL();
+
+listFoto.push(url);
+
+}
+
+// buat id
+
+const id=
+database.ref("produk").push().key;
+
+// simpan
+
+await database.ref("produk/"+id).set({
+
+nama,
+
+harga,
+
+kategori,
+
+lokasi,
+
+layanan,
+
+deskripsi,
+
+allowCredit,
+
+listFoto,
+
+status:true,
+
+createdAt:Date.now()
+
+});
+
+alert("Produk berhasil ditambahkan.");
+
+this.reset();
+
+});
+
+</script>
