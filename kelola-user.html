@@ -1,24 +1,173 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Kelola User - Panel Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/auth-guard.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
-    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
-        <h1 class="text-xl font-bold mb-4">Manajemen Akun Staff & Hak Akses</h1>
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 max-w-md">
-            <p class="text-sm text-slate-500 mb-2">Kontrol akun admin dan kata sandi master sistem di sini.</p>
-            <div id="admin-list" class="text-sm space-y-2"></div>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="firebase-init.js"></script>
-<script src="auth-guard.js"></script>
-</body>
-</html>
+<script>
+
+const tbody =
+document.getElementById("user-table");
+
+database.ref("users")
+.on("value",(snap)=>{
+
+tbody.innerHTML="";
+
+if(!snap.exists()){
+
+tbody.innerHTML=`
+
+<tr>
+
+<td colspan="5">
+
+Belum ada user
+
+</td>
+
+</tr>
+
+`;
+
+return;
+
+}
+
+snap.forEach(item=>{
+
+const u=item.val();
+
+tbody.innerHTML+=`
+
+<tr class="border-b">
+
+<td class="p-2">
+
+${u.nama || "-"}
+
+</td>
+
+<td class="p-2">
+
+${u.email || "-"}
+
+</td>
+
+<td class="p-2">
+
+${u.role || "customer"}
+
+</td>
+
+<td class="p-2">
+
+${u.active===false
+
+?'<span style="color:red">Nonaktif</span>'
+
+:'<span style="color:green">Aktif</span>'}
+
+</td>
+
+<td class="p-2">
+
+<button
+
+onclick="ubahRole('${item.key}')">
+
+Role
+
+</button>
+
+|
+
+<button
+
+onclick="toggleUser('${item.key}',${u.active===false})">
+
+${u.active===false
+
+?"Aktifkan"
+
+:"Nonaktifkan"}
+
+</button>
+
+|
+
+<button
+
+onclick="hapusUser('${item.key}')"
+
+style="color:red">
+
+Hapus
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+});
+
+// =======================
+
+function toggleUser(id,status){
+
+database.ref("users/"+id)
+
+.update({
+
+active:status
+
+});
+
+}
+
+// =======================
+
+function ubahRole(id){
+
+database.ref("users/"+id)
+
+.once("value",(snap)=>{
+
+const u=snap.val();
+
+const role=prompt(
+
+"Role Baru",
+
+u.role || "customer"
+
+);
+
+if(role==null)return;
+
+database.ref("users/"+id)
+
+.update({
+
+role:role
+
+});
+
+});
+
+}
+
+// =======================
+
+function hapusUser(id){
+
+if(!confirm("Hapus user?"))
+
+return;
+
+database.ref("users/"+id)
+
+.remove();
+
+}
+
+</script>
