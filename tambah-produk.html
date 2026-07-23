@@ -1,89 +1,155 @@
-<script>
-const kategoriSelect = document.getElementById("prod-category");
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Produk - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-// =====================
-// LOAD KATEGORI
-// =====================
-database.ref("kategori").on("value", snap => {
-    kategoriSelect.innerHTML = "";
-    
-    if(!snap.exists()) {
-        kategoriSelect.innerHTML = `<option value="">Belum ada kategori</option>`;
-        return;
-    }
+    <!-- FIREBASE SDK COMPAT -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
 
-    snap.forEach(item => {
-        let val = item.val();
-        let nama = (typeof val === 'object' && val !== null) ? (val.nama || "") : val;
-        if(nama) {
-            kategoriSelect.innerHTML += `<option value="${nama}">${nama}</option>`;
-        }
-    });
-});
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col overflow-y-auto p-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-2xl">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">Tambah Produk Baru</h2>
+                
+                <form id="form-add-product" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Produk</label>
+                        <input type="text" id="prod-name" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Harga (Rp)</label>
+                        <input type="number" id="prod-price" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                        <select id="prod-category" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi</label>
+                        <input type="text" id="prod-location" value="Tebing Tinggi" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Layanan</label>
+                        <input type="text" id="prod-service" value="COD / Siap Antar" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                        <textarea id="prod-description" rows="3" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm"></textarea>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="prod-credit" checked class="w-4 h-4">
+                        <label for="prod-credit" class="text-sm font-medium text-slate-700">Izinkan Pembelian Credit (Angsuran)</label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Foto Produk</label>
+                        <input type="file" id="prod-image" class="w-full text-sm">
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Simpan Produk</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
-// =====================
-// SIMPAN PRODUK
-// =====================
-document.getElementById("form-add-product").addEventListener("submit", async function(e) {
-    e.preventDefault();
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const storage = firebase.storage();
 
-    const nama = document.getElementById("prod-name").value.trim();
-    const harga = Number(document.getElementById("prod-price").value);
-    const kategori = document.getElementById("prod-category").value;
-    const lokasi = document.getElementById("prod-location").value.trim();
-    const layanan = document.getElementById("prod-service").value;
-    const deskripsi = document.getElementById("prod-description").value.trim();
-    const allowCredit = document.getElementById("prod-credit").checked;
+        const kategoriSelect = document.getElementById("prod-category");
 
-    if(!nama || !harga || !kategori) {
-        alert("Mohon lengkapi nama, harga, dan kategori produk!");
-        return;
-    }
-
-    let listFoto = [];
-    const fileInput = document.getElementById("prod-image");
-    const file = fileInput ? fileInput.files[0] : null;
-
-    try {
-        // Indikator loading opsional / pencegah klik ganda
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if(submitBtn) submitBtn.disabled = true;
-
-        // Upload gambar jika ada
-        if (file) {
-            const namaFile = "produk/" + Date.now() + "_" + file.name;
-            const fileRef = storage.ref(namaFile);
-            await fileRef.put(file);
-            const url = await fileRef.getDownloadURL();
-            listFoto.push(url);
-        }
-
-        // Buat ID unik produk
-        const id = database.ref("produk").push().key;
-
-        // Simpan data ke Realtime Database
-        await database.ref("produk/" + id).set({
-            nama,
-            harga,
-            kategori,
-            lokasi: lokasi || "Tebing Tinggi",
-            layanan,
-            deskripsi,
-            allowCredit,
-            listFoto,
-            status: true,
-            createdAt: Date.now()
+        database.ref("kategori").on("value", snap => {
+            kategoriSelect.innerHTML = "";
+            if(!snap.exists()) {
+                kategoriSelect.innerHTML = `<option>Belum ada kategori</option>`;
+                return;
+            }
+            snap.forEach(item => {
+                let nama = item.val().nama || item.val();
+                kategoriSelect.innerHTML += `<option>${nama}</option>`;
+            });
         });
 
-        alert("Produk berhasil ditambahkan.");
-        this.reset();
-        
-        if(submitBtn) submitBtn.disabled = false;
-    } catch (err) {
-        console.error("Gagal menyimpan produk:", err);
-        alert("Terjadi kesalahan: " + err.message);
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if(submitBtn) submitBtn.disabled = false;
-    }
-});
-</script>
+        document.getElementById("form-add-product").addEventListener("submit", async function(e){
+            e.preventDefault();
+            const nama = document.getElementById("prod-name").value;
+            const harga = Number(document.getElementById("prod-price").value);
+            const kategori = document.getElementById("prod-category").value;
+            const lokasi = document.getElementById("prod-location").value;
+            const layanan = document.getElementById("prod-service").value;
+            const deskripsi = document.getElementById("prod-description").value;
+            const allowCredit = document.getElementById("prod-credit").checked;
+
+            let listFoto = [];
+            const file = document.getElementById("prod-image").files[0];
+
+            try {
+                if(file){
+                    const namaFile = "produk/" + Date.now() + "_" + file.name;
+                    const ref = storage.ref(namaFile);
+                    await ref.put(file);
+                    const url = await ref.getDownloadURL();
+                    listFoto.push(url);
+                }
+
+                const id = database.ref("produk").push().key;
+                await database.ref("produk/" + id).set({
+                    nama, harga, kategori, lokasi, layanan, deskripsi, allowCredit, listFoto,
+                    status: true,
+                    createdAt: Date.now()
+                });
+
+                alert("Produk berhasil ditambahkan.");
+                this.reset();
+            } catch(err) {
+                alert("Gagal mengunggah: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
+```[cite: 1]
+
+---
+
+### 2. Standarisasi File Lainnya (`kelola-katalog.html`, `kelola-kategori.html`, `laporan-checkout.html`, `kelola-user.html`, `pengaturan-toko.html`)
+
+Untuk file-file menu admin sisanya, Anda cukup menyisipkan blok inisialisasi Firebase di bagian atas tag `<script>` mereka masing-masing seperti template di atas agar variabel `database` tidak bernilai *undefined*.
+
+Apakah Anda ingin saya buatkan juga skrip lengkap gabungan untuk file menu admin lainnya (seperti `kelola-katalog.html` atau `pengaturan-toko.html`) agar Anda tinggal *copy-paste* seperti `tambah-produk.html` dan `index.html`?
