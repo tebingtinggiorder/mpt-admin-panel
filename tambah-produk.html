@@ -1,128 +1,89 @@
 <script>
-
-const kategoriSelect =
-document.getElementById("prod-category");
+const kategoriSelect = document.getElementById("prod-category");
 
 // =====================
 // LOAD KATEGORI
 // =====================
+database.ref("kategori").on("value", snap => {
+    kategoriSelect.innerHTML = "";
+    
+    if(!snap.exists()) {
+        kategoriSelect.innerHTML = `<option value="">Belum ada kategori</option>`;
+        return;
+    }
 
-database.ref("kategori")
-.on("value",snap=>{
-
-kategoriSelect.innerHTML="";
-
-snap.forEach(item=>{
-
-let nama=item.val().nama || item.val();
-
-kategoriSelect.innerHTML+=`
-
-<option>
-
-${nama}
-
-</option>
-
-`;
-
-});
-
+    snap.forEach(item => {
+        let val = item.val();
+        let nama = (typeof val === 'object' && val !== null) ? (val.nama || "") : val;
+        if(nama) {
+            kategoriSelect.innerHTML += `<option value="${nama}">${nama}</option>`;
+        }
+    });
 });
 
 // =====================
 // SIMPAN PRODUK
 // =====================
+document.getElementById("form-add-product").addEventListener("submit", async function(e) {
+    e.preventDefault();
 
-document
-.getElementById("form-add-product")
+    const nama = document.getElementById("prod-name").value.trim();
+    const harga = Number(document.getElementById("prod-price").value);
+    const kategori = document.getElementById("prod-category").value;
+    const lokasi = document.getElementById("prod-location").value.trim();
+    const layanan = document.getElementById("prod-service").value;
+    const deskripsi = document.getElementById("prod-description").value.trim();
+    const allowCredit = document.getElementById("prod-credit").checked;
 
-.addEventListener("submit",
+    if(!nama || !harga || !kategori) {
+        alert("Mohon lengkapi nama, harga, dan kategori produk!");
+        return;
+    }
 
-async function(e){
+    let listFoto = [];
+    const fileInput = document.getElementById("prod-image");
+    const file = fileInput ? fileInput.files[0] : null;
 
-e.preventDefault();
+    try {
+        // Indikator loading opsional / pencegah klik ganda
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if(submitBtn) submitBtn.disabled = true;
 
-const nama =
-document.getElementById("prod-name").value;
+        // Upload gambar jika ada
+        if (file) {
+            const namaFile = "produk/" + Date.now() + "_" + file.name;
+            const fileRef = storage.ref(namaFile);
+            await fileRef.put(file);
+            const url = await fileRef.getDownloadURL();
+            listFoto.push(url);
+        }
 
-const harga =
-Number(document.getElementById("prod-price").value);
+        // Buat ID unik produk
+        const id = database.ref("produk").push().key;
 
-const kategori =
-document.getElementById("prod-category").value;
+        // Simpan data ke Realtime Database
+        await database.ref("produk/" + id).set({
+            nama,
+            harga,
+            kategori,
+            lokasi: lokasi || "Tebing Tinggi",
+            layanan,
+            deskripsi,
+            allowCredit,
+            listFoto,
+            status: true,
+            createdAt: Date.now()
+        });
 
-const lokasi =
-document.getElementById("prod-location").value;
-
-const layanan =
-document.getElementById("prod-service").value;
-
-const deskripsi =
-document.getElementById("prod-description").value;
-
-const allowCredit =
-document.getElementById("prod-credit").checked;
-
-let listFoto=[];
-
-// upload gambar
-
-const file =
-document.getElementById("prod-image").files[0];
-
-if(file){
-
-const namaFile=
-"produk/"+Date.now()+"_"+file.name;
-
-const ref=
-storage.ref(namaFile);
-
-await ref.put(file);
-
-const url=
-await ref.getDownloadURL();
-
-listFoto.push(url);
-
-}
-
-// buat id
-
-const id=
-database.ref("produk").push().key;
-
-// simpan
-
-await database.ref("produk/"+id).set({
-
-nama,
-
-harga,
-
-kategori,
-
-lokasi,
-
-layanan,
-
-deskripsi,
-
-allowCredit,
-
-listFoto,
-
-status:true,
-
-createdAt:Date.now()
-
+        alert("Produk berhasil ditambahkan.");
+        this.reset();
+        
+        if(submitBtn) submitBtn.disabled = false;
+    } catch (err) {
+        console.error("Gagal menyimpan produk:", err);
+        alert("Terjadi kesalahan: " + err.message);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if(submitBtn) submitBtn.disabled = false;
+    }
 });
-
-alert("Produk berhasil ditambahkan.");
-
-this.reset();
-
-});
-
 </script>
