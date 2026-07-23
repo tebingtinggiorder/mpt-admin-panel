@@ -37,9 +37,12 @@
             </div>
         </div>
     </main>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <script src="assets/js/firebase-init.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="firebase-init.js"></script>
+<script src="auth-guard.js"></script>
     <script>
         document.getElementById('user-email').innerText = JSON.parse(localStorage.getItem('mpt_admin_session_permanent')).email;
         database.ref('products').on('value', snap => {
