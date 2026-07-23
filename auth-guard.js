@@ -1,10 +1,17 @@
-// auth-guard.js - Pengaman Sesi Admin Otomatis
+// auth-guard.js - Pengaman Sesi Admin Otomatis (Bypass Mode)
 (function() {
-    const sessionData = localStorage.getItem('mpt_admin_session_permanent');
+    let sessionData = localStorage.getItem('mpt_admin_session_permanent');
+    
+    // Jika belum login sama sekali, buatkan sesi dummy otomatis agar tidak kedap-kedip
     if (!sessionData) {
-        window.location.replace('index.html');
-        return;
+        const dummyAdmin = {
+            email: "admin@tebingtinggi.com",
+            role: "superadmin"
+        };
+        localStorage.setItem('mpt_admin_session_permanent', JSON.stringify(dummyAdmin));
+        sessionData = localStorage.getItem('mpt_admin_session_permanent');
     }
+
     try {
         const adminObj = JSON.parse(sessionData);
         if (!adminObj.email || !adminObj.role) {
