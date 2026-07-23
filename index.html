@@ -1,148 +1,213 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    // Email Admin
-    const session = JSON.parse(localStorage.getItem("mpt_admin_session_permanent") || "{}");
+    // ==========================
+    // Helper
+    // ==========================
 
-    document.getElementById("user-email").innerText =
-        session.email || "Administrator";
+    function $(id){
+        return document.getElementById(id);
+    }
 
-    // ============================
+    function setText(id,value){
+
+        const el=$(id);
+
+        if(el){
+
+            el.innerText=value;
+
+        }
+
+    }
+
+    // ==========================
+    // CEK FIREBASE
+    // ==========================
+
+    if(typeof database==="undefined"){
+
+        console.error("Firebase database belum diinisialisasi.");
+
+        return;
+
+    }
+
+    // ==========================
+    // EMAIL ADMIN
+    // ==========================
+
+    const session=JSON.parse(
+
+        localStorage.getItem("mpt_admin_session_permanent")||"{}"
+
+    );
+
+    setText("user-email",
+
+        session.email || "Administrator"
+
+    );
+
+    // ==========================
     // TOTAL PRODUK
-    // ============================
-    database.ref("produk").on("value", snap => {
+    // ==========================
 
-        document.getElementById("total-products").innerText =
-            snap.numChildren();
+    database.ref("produk").on("value",(snap)=>{
+
+        setText("total-products",snap.numChildren());
 
     });
 
-    // ============================
+    // ==========================
     // TOTAL USER
-    // ============================
+    // ==========================
 
-    if(document.getElementById("total-users")){
+    database.ref("users").on("value",(snap)=>{
 
-        database.ref("users").on("value", snap=>{
+        setText("total-users",snap.numChildren());
 
-            document.getElementById("total-users").innerText =
-                snap.numChildren();
+    });
 
-        });
-
-    }
-
-    // ============================
+    // ==========================
     // TOTAL ORDER
-    // ============================
+    // ==========================
 
-    if(document.getElementById("total-orders")){
+    database.ref("orders").on("value",(snap)=>{
 
-        database.ref("orders").on("value", snap=>{
+        setText("total-orders",snap.numChildren());
 
-            document.getElementById("total-orders").innerText =
-                snap.numChildren();
+    });
 
-        });
-
-    }
-
-    // ============================
+    // ==========================
     // TOTAL VISITOR
-    // ============================
+    // ==========================
 
-    if(document.getElementById("total-visitors")){
+    database.ref("visitors").on("value",(snap)=>{
 
-        database.ref("visitors").on("value", snap=>{
+        setText("total-visitors",snap.numChildren());
 
-            document.getElementById("total-visitors").innerText =
-                snap.numChildren();
+    });
 
-        });
+    // ==========================
+    // OMZET
+    // ==========================
 
-    }
+    database.ref("orders").on("value",(snap)=>{
 
-    // ============================
-    // TOTAL OMZET
-    // ============================
+        let total=0;
 
-    if(document.getElementById("total-sales")){
+        snap.forEach(item=>{
 
-        database.ref("orders").on("value", snap=>{
+            const o=item.val();
 
-            let total = 0;
+            if(o.status==="Selesai"){
 
-            snap.forEach(item=>{
+                total+=Number(o.total||0);
 
-                const o = item.val();
-
-                if(o.status=="Selesai"){
-
-                    total += Number(o.total || 0);
-
-                }
-
-            });
-
-            document.getElementById("total-sales").innerText =
-                "Rp " + total.toLocaleString("id-ID");
+            }
 
         });
 
-    }
+        setText(
 
-    // ============================
-    // PESANAN TERBARU
-    // ============================
+            "total-sales",
 
-    if(document.getElementById("latest-orders")){
+            "Rp "+total.toLocaleString("id-ID")
+
+        );
+
+    });
+
+    // ==========================
+    // ORDER TERBARU
+    // ==========================
+
+    const latest=$("latest-orders");
+
+    if(latest){
 
         database.ref("orders")
+
         .limitToLast(10)
-        .on("value", snap=>{
+
+        .on("value",(snap)=>{
 
             let html="";
 
-            let data=[];
+            let list=[];
 
             snap.forEach(item=>{
 
-                data.push({
+                list.push({
+
                     id:item.key,
+
                     ...item.val()
+
                 });
 
             });
 
-            data.reverse();
+            list.reverse();
 
-            data.forEach(o=>{
+            if(list.length===0){
 
-                html += `
-                <tr class="border-b">
+                html=`
 
-                    <td class="p-2">${o.id}</td>
+<tr>
 
-                    <td class="p-2">
-                        ${o.customerName || "-"}
-                    </td>
+<td colspan="4"
 
-                    <td class="p-2">
-                        Rp ${Number(o.total||0).toLocaleString("id-ID")}
-                    </td>
+class="text-center p-4">
 
-                    <td class="p-2">
+Belum ada pesanan
 
-                        ${o.status || "Pending"}
+</td>
 
-                    </td>
+</tr>
 
-                </tr>
-                `;
+`;
+
+            }
+
+            list.forEach(o=>{
+
+                html+=`
+
+<tr>
+
+<td class="p-2">
+
+${o.id}
+
+</td>
+
+<td class="p-2">
+
+${o.customerName||"-"}
+
+</td>
+
+<td class="p-2">
+
+Rp ${Number(o.total||0).toLocaleString("id-ID")}
+
+</td>
+
+<td class="p-2">
+
+${o.status||"Pending"}
+
+</td>
+
+</tr>
+
+`;
 
             });
 
-            document.getElementById("latest-orders").innerHTML = html;
+            latest.innerHTML=html;
 
         });
 
