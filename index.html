@@ -10,208 +10,117 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function setText(id,value){
-
         const el=$(id);
-
         if(el){
-
             el.innerText=value;
-
         }
-
     }
 
     // ==========================
-    // CEK FIREBASE
+    // CEK FIREBASE & DATABASE
     // ==========================
-
-    if(typeof database==="undefined"){
-
+    if(typeof database === "undefined"){
         console.error("Firebase database belum diinisialisasi.");
-
         return;
-
     }
 
     // ==========================
-    // EMAIL ADMIN
+    // EMAIL & PROFIL ADMIN (Diselaraskan dengan auth.js)
     // ==========================
-
-    const session=JSON.parse(
-
-        localStorage.getItem("mpt_admin_session_permanent")||"{}"
-
+    const session = JSON.parse(
+        localStorage.getItem("mpt_admin") || "{}"
     );
-
+    
     setText("user-email",
-
         session.email || "Administrator"
-
     );
+
+    // Jika di dashboard Anda ada elemen untuk nama admin, aktifkan baris ini:
+    // setText("user-name", session.name || "Admin");
 
     // ==========================
     // TOTAL PRODUK
     // ==========================
-
     database.ref("produk").on("value",(snap)=>{
-
-        setText("total-products",snap.numChildren());
-
+        setText("total-products", snap.numChildren());
     });
 
     // ==========================
     // TOTAL USER
     // ==========================
-
     database.ref("users").on("value",(snap)=>{
-
-        setText("total-users",snap.numChildren());
-
+        setText("total-users", snap.numChildren());
     });
 
     // ==========================
     // TOTAL ORDER
     // ==========================
-
     database.ref("orders").on("value",(snap)=>{
-
-        setText("total-orders",snap.numChildren());
-
+        setText("total-orders", snap.numChildren());
     });
 
     // ==========================
     // TOTAL VISITOR
     // ==========================
-
     database.ref("visitors").on("value",(snap)=>{
-
-        setText("total-visitors",snap.numChildren());
-
+        setText("total-visitors", snap.numChildren());
     });
 
     // ==========================
-    // OMZET
+    // OMZET (Hanya Status "Selesai")
     // ==========================
-
     database.ref("orders").on("value",(snap)=>{
-
-        let total=0;
-
+        let total = 0;
         snap.forEach(item=>{
-
-            const o=item.val();
-
-            if(o.status==="Selesai"){
-
-                total+=Number(o.total||0);
-
+            const o = item.val();
+            if(o.status === "Selesai"){
+                total += Number(o.total || 0);
             }
-
         });
-
         setText(
-
             "total-sales",
-
-            "Rp "+total.toLocaleString("id-ID")
-
+            "Rp " + total.toLocaleString("id-ID")
         );
-
     });
 
     // ==========================
     // ORDER TERBARU
     // ==========================
-
-    const latest=$("latest-orders");
-
+    const latest = $("latest-orders");
     if(latest){
-
         database.ref("orders")
-
         .limitToLast(10)
-
         .on("value",(snap)=>{
-
-            let html="";
-
-            let list=[];
-
+            let html = "";
+            let list = [];
             snap.forEach(item=>{
-
                 list.push({
-
-                    id:item.key,
-
+                    id: item.key,
                     ...item.val()
-
                 });
-
             });
-
             list.reverse();
-
-            if(list.length===0){
-
-                html=`
-
-<tr>
-
-<td colspan="4"
-
-class="text-center p-4">
-
-Belum ada pesanan
-
-</td>
-
-</tr>
-
-`;
-
+            if(list.length === 0){
+                html = `
+                <tr>
+                <td colspan="4" class="text-center p-4">
+                Belum ada pesanan
+                </td>
+                </tr>
+                `;
             }
-
             list.forEach(o=>{
-
-                html+=`
-
-<tr>
-
-<td class="p-2">
-
-${o.id}
-
-</td>
-
-<td class="p-2">
-
-${o.customerName||"-"}
-
-</td>
-
-<td class="p-2">
-
-Rp ${Number(o.total||0).toLocaleString("id-ID")}
-
-</td>
-
-<td class="p-2">
-
-${o.status||"Pending"}
-
-</td>
-
-</tr>
-
-`;
-
+                html += `
+                <tr>
+                <td class="p-2">${o.id}</td>
+                <td class="p-2">${o.customerName || "-"}</td>
+                <td class="p-2">Rp ${Number(o.total || 0).toLocaleString("id-ID")}</td>
+                <td class="p-2">${o.status || "Pending"}</td>
+                </tr>
+                `;
             });
-
-            latest.innerHTML=html;
-
+            latest.innerHTML = html;
         });
-
     }
-
 });
 </script>
