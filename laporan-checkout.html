@@ -1,49 +1,180 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Laporan Checkout - Panel Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/auth-guard.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
-    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
-        <h1 class="text-xl font-bold mb-4">Rekap Pesanan Masuk (Checkout)</h1>
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <table class="w-full text-left text-sm">
-                <thead>
-                    <tr class="bg-slate-100 border-b text-slate-600">
-                        <th class="p-3">ID Pesanan</th>
-                        <th class="p-3">Pemesan</th>
-                        <th class="p-3">Total Pembayaran</th>
-                        <th class="p-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="orders-table">
-                    <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat rekap pesanan...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="firebase-init.js"></script>
-<script src="auth-guard.js"></script>
-    <script>
-        database.ref('orders').on('value', snap => {
-            const tbody = document.getElementById('orders-table');
-            tbody.innerHTML = '';
-            if(!snap.exists()) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada pesanan masuk.</td></tr>`;
-                return;
-            }
-            snap.forEach(item => {
-                const o = item.val();
-                tbody.innerHTML += `<tr class="border-b"><td class="p-3">${item.key}</td><td class="p-3">${o.customerName || 'Tamu'}</td><td class="p-3">Rp ${Number(o.total || 0).toLocaleString()}</td><td class="p-3"><span class="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded text-xs">${o.status || 'Pending'}</span></td></tr>`;
-            });
-        });
-    </script>
-</body>
-</html>
+<script>
+
+const tbody =
+document.getElementById("orders-table");
+
+// ======================
+// LOAD ORDER
+// ======================
+
+database.ref("orders")
+.orderByChild("createdAt")
+.on("value",(snap)=>{
+
+tbody.innerHTML="";
+
+if(!snap.exists()){
+
+tbody.innerHTML=`
+
+<tr>
+
+<td colspan="6" class="text-center p-5">
+
+Belum ada pesanan
+
+</td>
+
+</tr>
+
+`;
+
+return;
+
+}
+
+let data=[];
+
+snap.forEach(item=>{
+
+data.push({
+
+id:item.key,
+
+...item.val()
+
+});
+
+});
+
+data.reverse();
+
+data.forEach(o=>{
+
+tbody.innerHTML+=`
+
+<tr class="border-b">
+
+<td class="p-3">
+
+${o.id}
+
+</td>
+
+<td class="p-3">
+
+${o.customerName || "-"}
+
+</td>
+
+<td class="p-3">
+
+Rp ${Number(o.total||0).toLocaleString("id-ID")}
+
+</td>
+
+<td class="p-3">
+
+<span>
+
+${o.status || "Pending"}
+
+</span>
+
+</td>
+
+<td class="p-3">
+
+${new Date(o.createdAt||Date.now()).toLocaleString("id-ID")}
+
+</td>
+
+<td class="p-3">
+
+<button
+
+onclick="ubahStatus('${o.id}')"
+
+class="text-blue-600">
+
+Status
+
+</button>
+
+|
+
+<button
+
+onclick="hapusOrder('${o.id}')"
+
+class="text-red-600">
+
+Hapus
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+});
+
+// ======================
+// HAPUS
+// ======================
+
+function hapusOrder(id){
+
+if(!confirm("Hapus pesanan?")) return;
+
+database.ref("orders/"+id).remove();
+
+}
+
+// ======================
+// UBAH STATUS
+// ======================
+
+function ubahStatus(id){
+
+database.ref("orders/"+id)
+
+.once("value",(snap)=>{
+
+const order=snap.val();
+
+const status=prompt(
+
+`Status Baru
+
+Pending
+Diproses
+Dikirim
+Selesai
+Dibatalkan`,
+
+order.status || "Pending"
+
+);
+
+if(status==null) return;
+
+database.ref("orders/"+id)
+
+.update({
+
+status:status,
+
+updatedAt:Date.now()
+
+});
+
+});
+
+}
+
+</script>
