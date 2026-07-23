@@ -1,180 +1,125 @@
-<script>
-
-const tbody =
-document.getElementById("orders-table");
-
-// ======================
-// LOAD ORDER
-// ======================
-
-database.ref("orders")
-.orderByChild("createdAt")
-.on("value",(snap)=>{
-
-tbody.innerHTML="";
-
-if(!snap.exists()){
-
-tbody.innerHTML=`
-
-<tr>
-
-<td colspan="6" class="text-center p-5">
-
-Belum ada pesanan
-
-</td>
-
-</tr>
-
-`;
-
-return;
-
-}
-
-let data=[];
-
-snap.forEach(item=>{
-
-data.push({
-
-id:item.key,
-
-...item.val()
-
-});
-
-});
-
-data.reverse();
-
-data.forEach(o=>{
-
-tbody.innerHTML+=`
-
-<tr class="border-b">
-
-<td class="p-3">
-
-${o.id}
-
-</td>
-
-<td class="p-3">
-
-${o.customerName || "-"}
-
-</td>
-
-<td class="p-3">
-
-Rp ${Number(o.total||0).toLocaleString("id-ID")}
-
-</td>
-
-<td class="p-3">
-
-<span>
-
-${o.status || "Pending"}
-
-</span>
-
-</td>
-
-<td class="p-3">
-
-${new Date(o.createdAt||Date.now()).toLocaleString("id-ID")}
-
-</td>
-
-<td class="p-3">
-
-<button
-
-onclick="ubahStatus('${o.id}')"
-
-class="text-blue-600">
-
-Status
-
-</button>
-
-|
-
-<button
-
-onclick="hapusOrder('${o.id}')"
-
-class="text-red-600">
-
-Hapus
-
-</button>
-
-</td>
-
-</tr>
-
-`;
-
-});
-
-});
-
-// ======================
-// HAPUS
-// ======================
-
-function hapusOrder(id){
-
-if(!confirm("Hapus pesanan?")) return;
-
-database.ref("orders/"+id).remove();
-
-}
-
-// ======================
-// UBAH STATUS
-// ======================
-
-function ubahStatus(id){
-
-database.ref("orders/"+id)
-
-.once("value",(snap)=>{
-
-const order=snap.val();
-
-const status=prompt(
-
-`Status Baru
-
-Pending
-Diproses
-Dikirim
-Selesai
-Dibatalkan`,
-
-order.status || "Pending"
-
-);
-
-if(status==null) return;
-
-database.ref("orders/"+id)
-
-.update({
-
-status:status,
-
-updatedAt:Date.now()
-
-});
-
-});
-
-}
-
-</script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Checkout - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">📋 Laporan Pesanan Masuk (Realtime)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                                <th class="p-3">ID Order</th>
+                                <th class="p-3">Pelanggan & WA</th>
+                                <th class="p-3">Produk</th>
+                                <th class="p-3">Total</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Waktu</th>
+                                <th class="p-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table" class="divide-y divide-slate-100">
+                            <tr><td colspan="7" class="text-center p-4 text-slate-400">Memuat data pesanan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const tbody = document.getElementById("orders-table");
+            if (!tbody) return;
+
+            // Menggunakan .on("value") tanpa orderByChild untuk mencegah error index / missing property
+            database.ref("orders").on("value", (snap) => {
+                tbody.innerHTML = "";
+                if (!snap.exists()) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-slate-400">Belum ada pesanan masuk</td></tr>`;
+                    return;
+                }
+
+                let data = [];
+                snap.forEach(item => {
+                    data.push({ id: item.key, ...item.val() });
+                });
+
+                // Urutkan berdasarkan waktu terbaru (createdAt) secara aman di Javascript
+                data.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+                data.forEach(o => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 font-medium text-slate-800">${o.orderId || o.id}</td>
+                            <td class="p-3">${o.customerName || "-"}<br><span class="text-xs text-slate-400">${o.customerWa || "-"}</span></td>
+                            <td class="p-3">${o.namaProduk || "-"} (${o.tipe || 'Cash'}) x${o.qty || 1}</td>
+                            <td class="p-3 font-semibold text-blue-600">Rp ${Number(o.total || 0).toLocaleString("id-ID")}</td>
+                            <td class="p-3"><span class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-semibold">${o.status || "Pending"}</span></td>
+                            <td class="p-3 text-xs text-slate-500">${o.waktu || new Date(o.createdAt || Date.now()).toLocaleString("id-ID")}</td>
+                            <td class="p-3 space-x-2">
+                                <button onclick="ubahStatus('${o.id}')" class="text-blue-600 font-medium hover:underline">Status</button>
+                                <button onclick="hapusOrder('${o.id}')" class="text-red-600 font-medium hover:underline">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        });
+
+        function ubahStatus(id) {
+            database.ref("orders/" + id).once("value", (snap) => {
+                const order = snap.val();
+                const status = prompt("Ubah Status Pesanan (Pending / Diproses / Dikirim / Selesai / Dibatalkan):", order.status || "Pending");
+                if(status == null) return;
+                database.ref("orders/" + id).update({ status: status, updatedAt: Date.now() });
+            });
+        }
+
+        function hapusOrder(id) {
+            if(confirm("Hapus laporan pesanan ini?")) {
+                database.ref("orders/" + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
