@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Kelola Kategori - Panel Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="assets/js/auth-guard.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
+    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
+        <h1 class="text-xl font-bold mb-4">Manajemen Kategori Produk</h1>
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 max-w-md mb-6">
+            <form id="form-category" class="space-y-3">
+                <input type="text" id="cat-name" placeholder="Nama Kategori Baru" class="w-full border rounded p-2 text-sm" required>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm">Tambah Kategori</button>
+            </form>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-slate-200 max-w-md p-4">
+            <ul id="category-list" class="space-y-2 text-sm"></ul>
+        </div>
+    </main>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="assets/js/firebase-init.js"></script>
+    <script>
+        document.getElementById('form-category').addEventListener('submit', e => {
+            e.preventDefault();
+            const name = document.getElementById('cat-name').value;
+            database.ref('categories').push({ name }).then(() => { document.getElementById('cat-name').value = ''; });
+        });
+        database.ref('categories').on('value', snap => {
+            const list = document.getElementById('category-list');
+            list.innerHTML = '';
+            snap.forEach(item => {
+                list.innerHTML += `<li class="flex justify-between items-center border-b pb-1"><span>${item.val().name}</span><button onclick="database.ref('categories/${item.key}').remove()" class="text-red-500 text-xs">Hapus</button></li>`;
+            });
+        });
+    </script>
+</body>
+</html>
