@@ -1,58 +1,185 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Kelola Katalog - Panel Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="assets/js/auth-guard.js"></script>
-</head>
-<body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
-    <main class="flex-1 flex flex-col h-full overflow-y-auto p-6">
-        <h1 class="text-xl font-bold mb-4">Daftar Katalog Produk</h1>
-        <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-            <table class="w-full text-left border-collapse text-sm">
-                <thead>
-                    <tr class="bg-slate-100 border-b border-slate-200 text-slate-600">
-                        <th class="p-3">Nama Produk</th>
-                        <th class="p-3">Harga</th>
-                        <th class="p-3">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="catalog-table-body">
-                    <tr><td colspan="3" class="p-4 text-center text-slate-400">Memuat data...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="firebase-init.js"></script>
-<script src="auth-guard.js"></script>
-    <script>
-        database.ref('products').on('value', snap => {
-            const tbody = document.getElementById('catalog-table-body');
-            tbody.innerHTML = '';
-            if (!snap.exists()) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">Belum ada produk.</td></tr>`;
-                return;
-            }
-            snap.forEach(item => {
-                const val = item.val();
-                tbody.innerHTML += `
-                    <tr class="border-b border-slate-100">
-                        <td class="p-3">${val.name}</td>
-                        <td class="p-3">Rp ${Number(val.price).toLocaleString()}</td>
-                        <td class="p-3"><button onclick="deleteProduct('${item.key}')" class="text-red-500 hover:underline">Hapus</button></td>
-                    </tr>`;
-            });
-        });
-        function deleteProduct(id) {
-            if (confirm('Yakin ingin menghapus produk ini?')) {
-                database.ref('products/' + id).remove();
-            }
-        }
-    </script>
-</body>
-</html>
+<script>
+
+const tbody =
+document.getElementById("catalog-table-body");
+
+// ======================
+// LOAD PRODUK
+// ======================
+
+database.ref("produk").on("value",(snap)=>{
+
+tbody.innerHTML="";
+
+if(!snap.exists()){
+
+tbody.innerHTML=`
+<tr>
+<td colspan="5" class="text-center p-5">
+Belum ada produk
+</td>
+</tr>`;
+
+return;
+
+}
+
+snap.forEach(item=>{
+
+const p=item.val();
+
+tbody.innerHTML+=`
+
+<tr class="border-b">
+
+<td class="p-3">
+
+<img
+src="${(p.listFoto && p.listFoto.length)?p.listFoto[0]:'https://via.placeholder.com/60'}"
+style="width:60px;height:60px;object-fit:cover;border-radius:8px;">
+
+</td>
+
+<td class="p-3">
+
+<b>${p.nama}</b>
+
+<br>
+
+<small>${p.kategori}</small>
+
+</td>
+
+<td class="p-3">
+
+Rp ${Number(p.harga).toLocaleString("id-ID")}
+
+</td>
+
+<td class="p-3">
+
+${p.status===false
+?'<span style="color:red">OFF</span>'
+:'<span style="color:green">ON</span>'}
+
+</td>
+
+<td class="p-3">
+
+<button
+onclick="editProduk('${item.key}')"
+class="text-blue-600">
+
+Edit
+
+</button>
+
+|
+
+<button
+onclick="toggleProduk('${item.key}',${p.status===false})">
+
+${p.status===false
+?'Aktifkan'
+:'Nonaktifkan'}
+
+</button>
+
+|
+
+<button
+onclick="hapusProduk('${item.key}')"
+style="color:red">
+
+Hapus
+
+</button>
+
+</td>
+
+</tr>
+
+`;
+
+});
+
+});
+
+// ======================
+// HAPUS
+// ======================
+
+function hapusProduk(id){
+
+if(!confirm("Hapus produk ini?")) return;
+
+database.ref("produk/"+id).remove();
+
+}
+
+// ======================
+// ON OFF
+// ======================
+
+function toggleProduk(id,status){
+
+database.ref("produk/"+id)
+.update({
+
+status:status
+
+});
+
+}
+
+// ======================
+// EDIT
+// ======================
+
+function editProduk(id){
+
+database.ref("produk/"+id)
+
+.once("value",(snap)=>{
+
+const p=snap.val();
+
+let nama=
+prompt("Nama Produk",p.nama);
+
+if(nama==null) return;
+
+let harga=
+prompt("Harga",p.harga);
+
+if(harga==null) return;
+
+let lokasi=
+prompt("Lokasi",p.lokasi);
+
+if(lokasi==null) return;
+
+let deskripsi=
+prompt("Deskripsi",p.deskripsi);
+
+if(deskripsi==null) return;
+
+database.ref("produk/"+id)
+
+.update({
+
+nama,
+
+harga:Number(harga),
+
+lokasi,
+
+deskripsi
+
+});
+
+});
+
+}
+
+</script>
