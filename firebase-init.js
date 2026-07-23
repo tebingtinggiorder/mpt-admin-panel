@@ -1,97 +1,154 @@
-// ========================================
-// MPT STORE - Firebase Initialization
-// ========================================
+// =========================================
+// MPT STORE V2
+// Firebase Configuration
+// admin/js/firebase.js
+// =========================================
 
-// Konfigurasi Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+
+import {
+    getAuth
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+import {
+    getDatabase,
+    ref,
+    push,
+    set,
+    update,
+    remove,
+    get,
+    onValue
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+
+import {
+    getStorage,
+    ref as storageRef,
+    uploadBytes,
+    getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
+
+
+// =========================================
+// FIREBASE CONFIG
+// =========================================
+
 const firebaseConfig = {
-    apiKey: "ISI_API_KEY_ANDA",
-    authDomain: "ISI_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "ISI_PROJECT_ID",
-    storageBucket: "ISI_PROJECT_ID.appspot.com",
-    messagingSenderId: "ISI_SENDER_ID",
-    appId: "ISI_APP_ID"
+
+    apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+
+    authDomain: "tebingtinggiorder.firebaseapp.com",
+
+    databaseURL:
+        "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+    projectId: "tebingtinggiorder",
+
+    storageBucket:
+        "tebingtinggiorder.firebasestorage.app",
+
+    messagingSenderId:
+        "374470707588",
+
+    appId:
+        "1:374470707588:web:d1fa72f4832753b401f5d1",
+
+    measurementId:
+        "G-BPKTES3HPY"
+
 };
 
-// Inisialisasi Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
 
-// Database
-const database = firebase.database();
+// =========================================
+// INITIALIZE
+// =========================================
 
-// Storage
-const storage = firebase.storage();
+const app = initializeApp(firebaseConfig);
 
-// Referensi Database
-const REF = {
-    products: database.ref("produk"),
-    categories: database.ref("kategori"),
-    users: database.ref("users"),
-    orders: database.ref("orders"),
-    settings: database.ref("settings"),
-    visitors: database.ref("visitors"),
-    comments: database.ref("comments")
+const auth = getAuth(app);
+
+const db = getDatabase(app);
+
+const storage = getStorage(app);
+
+
+// =========================================
+// EXPORT
+// =========================================
+
+export {
+
+    app,
+
+    auth,
+
+    db,
+
+    storage,
+
+    ref,
+
+    push,
+
+    set,
+
+    update,
+
+    remove,
+
+    get,
+
+    onValue,
+
+    storageRef,
+
+    uploadBytes,
+
+    getDownloadURL
+
 };
 
-// Membuat ID unik
-function createId(prefix = "") {
-    return prefix + "_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8);
+
+// =========================================
+// HELPER
+// =========================================
+
+export function rupiah(value = 0) {
+
+    return "Rp " +
+
+        Number(value)
+
+        .toLocaleString("id-ID");
+
 }
 
-// Format Rupiah
-function rupiah(nominal) {
-    return "Rp " + Number(nominal || 0).toLocaleString("id-ID");
+export function uid(prefix = "") {
+
+    return prefix +
+
+        Date.now() +
+
+        Math.random()
+
+        .toString(36)
+
+        .substring(2,8);
+
 }
 
-// Format tanggal Indonesia
-function formatTanggal(time) {
-    return new Date(time).toLocaleString("id-ID");
+export function tanggal(time){
+
+    return new Date(time)
+
+    .toLocaleString("id-ID");
+
 }
 
-// Upload gambar ke Firebase Storage
-async function uploadImage(file) {
+console.log("===================================");
 
-    if (!file) return "";
+console.log("MPT STORE V2");
 
-    const filename = "produk/" + Date.now() + "_" + file.name;
+console.log("Firebase Connected");
 
-    const ref = storage.ref(filename);
-
-    await ref.put(file);
-
-    return await ref.getDownloadURL();
-}
-
-// Simpan data
-function save(path, data) {
-    return database.ref(path).set(data);
-}
-
-// Update data
-function update(path, data) {
-    return database.ref(path).update(data);
-}
-
-// Hapus data
-function remove(path) {
-    return database.ref(path).remove();
-}
-
-// Ambil data sekali
-function get(path) {
-    return database.ref(path).once("value");
-}
-
-// Realtime Listener
-function listen(path, callback) {
-    database.ref(path).on("value", callback);
-}
-
-// Push data otomatis
-function push(path, data) {
-    return database.ref(path).push(data);
-}
-
-console.log("✅ Firebase Connected");
+console.log("===================================");
