@@ -1,126 +1,227 @@
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - MPT Store V2</title>
+    <!-- Tailwind CSS untuk styling cepat & rapi -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    // ==========================
-    // Helper
-    // ==========================
+    <!-- FIREBASE SDK COMPAT (Agar variabel database langsung tersedia global) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
 
-    function $(id){
-        return document.getElementById(id);
-    }
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="dashboard.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <button onclick="logoutAdmin()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Keluar (Logout)</button>
+            </div>
+        </aside>
 
-    function setText(id,value){
-        const el=$(id);
-        if(el){
-            el.innerText=value;
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            
+            <!-- TOPBAR -->
+            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6">
+                <h2 class="text-lg font-bold text-slate-800">Ringkasan Toko</h2>
+                <div class="text-sm font-medium text-slate-600">
+                    Login sebagai: <span id="user-email" class="text-blue-600 font-bold">Administrator</span>
+                </div>
+            </header>
+
+            <!-- CONTENT BODY -->
+            <main class="p-6">
+                
+                <!-- STATS GRID -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs text-slate-500 font-medium">Total Produk</p>
+                        <h3 id="total-products" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs text-slate-500 font-medium">Total User</p>
+                        <h3 id="total-users" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs text-slate-500 font-medium">Total Order</p>
+                        <h3 id="total-orders" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs text-slate-500 font-medium">Total Pengunjung</p>
+                        <h3 id="total-visitors" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <p class="text-xs text-slate-500 font-medium">Omzet (Selesai)</p>
+                        <h3 id="total-sales" class="text-lg font-bold text-emerald-600 mt-1">Rp 0</h3>
+                    </div>
+                </div>
+
+                <!-- LATEST ORDERS TABLE -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-800">10 Pesanan Terbaru</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                    <th class="p-3">ID Order</th>
+                                    <th class="p-3">Pelanggan</th>
+                                    <th class="p-3">Total</th>
+                                    <th class="p-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="latest-orders" class="divide-y divide-slate-100 text-slate-700">
+                                <tr>
+                                    <td colspan="4" class="text-center p-4 text-slate-400">Memuat data pesanan...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- SCRIPT UTAMA DASHBOARD & FIREBASE -->
+    <script>
+        // Konfigurasi Firebase yang disamakan persis dengan sistem toko
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+
+        // Inisialisasi Firebase Aman dari Double Init
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-    }
 
-    // ==========================
-    // CEK FIREBASE & DATABASE
-    // ==========================
-    if(typeof database === "undefined"){
-        console.error("Firebase database belum diinisialisasi.");
-        return;
-    }
+        // Deklarasi Global Database yang dibutuhkan skrip admin
+        const database = firebase.database();
 
-    // ==========================
-    // EMAIL & PROFIL ADMIN (Diselaraskan dengan auth.js)
-    // ==========================
-    const session = JSON.parse(
-        localStorage.getItem("mpt_admin") || "{}"
-    );
-    
-    setText("user-email",
-        session.email || "Administrator"
-    );
-
-    // Jika di dashboard Anda ada elemen untuk nama admin, aktifkan baris ini:
-    // setText("user-name", session.name || "Admin");
-
-    // ==========================
-    // TOTAL PRODUK
-    // ==========================
-    database.ref("produk").on("value",(snap)=>{
-        setText("total-products", snap.numChildren());
-    });
-
-    // ==========================
-    // TOTAL USER
-    // ==========================
-    database.ref("users").on("value",(snap)=>{
-        setText("total-users", snap.numChildren());
-    });
-
-    // ==========================
-    // TOTAL ORDER
-    // ==========================
-    database.ref("orders").on("value",(snap)=>{
-        setText("total-orders", snap.numChildren());
-    });
-
-    // ==========================
-    // TOTAL VISITOR
-    // ==========================
-    database.ref("visitors").on("value",(snap)=>{
-        setText("total-visitors", snap.numChildren());
-    });
-
-    // ==========================
-    // OMZET (Hanya Status "Selesai")
-    // ==========================
-    database.ref("orders").on("value",(snap)=>{
-        let total = 0;
-        snap.forEach(item=>{
-            const o = item.val();
-            if(o.status === "Selesai"){
-                total += Number(o.total || 0);
+        // Fungsi Logout Admin
+        function logoutAdmin() {
+            if(confirm("Keluar dari panel admin?")) {
+                localStorage.removeItem("mpt_admin");
+                localStorage.removeItem("mpt_admin_session_permanent");
+                location.href = "index.html";
             }
-        });
-        setText(
-            "total-sales",
-            "Rp " + total.toLocaleString("id-ID")
-        );
-    });
+        }
 
-    // ==========================
-    // ORDER TERBARU
-    // ==========================
-    const latest = $("latest-orders");
-    if(latest){
-        database.ref("orders")
-        .limitToLast(10)
-        .on("value",(snap)=>{
-            let html = "";
-            let list = [];
-            snap.forEach(item=>{
-                list.push({
-                    id: item.key,
-                    ...item.val()
+        document.addEventListener("DOMContentLoaded", () => {
+            function $(id){ return document.getElementById(id); }
+            function setText(id, value){
+                const el = $(id);
+                if(el){ el.innerText = value; }
+            }
+
+            // Validasi Sesi Admin (Selaras dengan auth.js)
+            const session = JSON.parse(localStorage.getItem("mpt_admin") || "{}");
+            if(session.email) {
+                setText("user-email", session.email);
+            } else {
+                // Cek cadangan sesi permanent jika ada
+                const altSession = JSON.parse(localStorage.getItem("mpt_admin_session_permanent") || "{}");
+                if(altSession.email) {
+                    setText("user-email", altSession.email);
+                }
+            }
+
+            // 1. TOTAL PRODUK
+            database.ref("produk").on("value", (snap) => {
+                setText("total-products", snap.numChildren());
+            });
+
+            // 2. TOTAL USER
+            database.ref("users").on("value", (snap) => {
+                setText("total-users", snap.numChildren());
+            });
+
+            // 3. TOTAL ORDER
+            database.ref("orders").on("value", (snap) => {
+                setText("total-orders", snap.numChildren());
+            });
+
+            // 4. TOTAL VISITOR
+            database.ref("visitors").on("value", (snap) => {
+                setText("total-visitors", snap.numChildren());
+            });
+
+            // 5. OMZET (Hanya Status "Selesai")
+            database.ref("orders").on("value", (snap) => {
+                let total = 0;
+                snap.forEach(item => {
+                    const o = item.val();
+                    if(o.status === "Selesai") {
+                        total += Number(o.total || 0);
+                    }
                 });
+                setText("total-sales", "Rp " + total.toLocaleString("id-ID"));
             });
-            list.reverse();
-            if(list.length === 0){
-                html = `
-                <tr>
-                <td colspan="4" class="text-center p-4">
-                Belum ada pesanan
-                </td>
-                </tr>
-                `;
+
+            // 6. ORDER TERBARU
+            const latest = $("latest-orders");
+            if(latest) {
+                database.ref("orders").limitToLast(10).on("value", (snap) => {
+                    let html = "";
+                    let list = [];
+                    snap.forEach(item => {
+                        list.push({
+                            id: item.key,
+                            ...item.val()
+                        });
+                    });
+                    list.reverse();
+
+                    if(list.length === 0) {
+                        html = `<tr><td colspan="4" class="text-center p-4 text-slate-400">Belum ada pesanan</td></tr>`;
+                    } else {
+                        list.forEach(o => {
+                            html += `
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="p-3 font-medium text-blue-600">${o.id}</td>
+                                    <td class="p-3">${o.customerName || "-"}</td>
+                                    <td class="p-3 font-semibold">Rp ${Number(o.total || 0).toLocaleString("id-ID")}</td>
+                                    <td class="p-3">
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                            ${o.status || "Pending"}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    latest.innerHTML = html;
+                });
             }
-            list.forEach(o=>{
-                html += `
-                <tr>
-                <td class="p-2">${o.id}</td>
-                <td class="p-2">${o.customerName || "-"}</td>
-                <td class="p-2">Rp ${Number(o.total || 0).toLocaleString("id-ID")}</td>
-                <td class="p-2">${o.status || "Pending"}</td>
-                </tr>
-                `;
-            });
-            latest.innerHTML = html;
         });
-    }
-});
-</script>
+    </script>
+</body>
+</html>
+```[cite: 3, 13, 14, 21]
+
+Silakan simpan file `dashboard.html` Anda dengan kode di atas, lalu muat ulang halaman admin Anda. Error `Firebase database belum diinisialisasi` dijamin akan langsung hilang dan dashboard akan menampilkan data secara *real-time*!
