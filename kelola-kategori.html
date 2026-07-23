@@ -1,155 +1,471 @@
-<script>
-
-const listKategori =
-document.getElementById("category-list");
-
-const form =
-document.getElementById("form-category");
-
-// =========================
-// TAMBAH KATEGORI
-// =========================
-
-form.addEventListener("submit",async(e)=>{
-
-e.preventDefault();
-
-const nama=
-document.getElementById("cat-name")
-.value.trim();
-
-if(nama==""){
-
-alert("Nama kategori kosong");
-
-return;
-
-}
-
-const id=
-database.ref("kategori").push().key;
-
-await database.ref("kategori/"+id).set({
-
-nama:nama,
-
-createdAt:Date.now()
-
-});
-
-form.reset();
-
-});
-
-// =========================
-// LOAD KATEGORI
-// =========================
-
-database.ref("kategori")
-.orderByChild("createdAt")
-.on("value",(snap)=>{
-
-listKategori.innerHTML="";
-
-if(!snap.exists()){
-
-listKategori.innerHTML=`
-
-<li class="text-center text-gray-400">
-
-Belum ada kategori
-
-</li>
-
-`;
-
-return;
-
-}
-
-snap.forEach(item=>{
-
-const k=item.val();
-
-listKategori.innerHTML+=`
-
-<li class="flex justify-between items-center border-b py-2">
-
-<div>
-
-<b>${k.nama}</b>
-
-</div>
-
-<div>
-
-<button
-onclick="editKategori('${item.key}')"
-class="text-blue-600">
-
-Edit
-
-</button>
-
-|
-
-<button
-onclick="hapusKategori('${item.key}')"
-class="text-red-600">
-
-Hapus
-
-</button>
-
-</div>
-
-</li>
-
-`;
-
-});
-
-});
-
-// =========================
-// EDIT
-// =========================
-
-function editKategori(id){
-
-database.ref("kategori/"+id)
-
-.once("value",(snap)=>{
-
-const k=snap.val();
-
-const nama=
-prompt("Nama kategori",k.nama);
-
-if(nama==null) return;
-
-database.ref("kategori/"+id)
-
-.update({
-
-nama:nama
-
-});
-
-});
-
-}
-
-// =========================
-// HAPUS
-// =========================
-
-function hapusKategori(id){
-
-if(!confirm("Hapus kategori ini?")) return;
-
-database.ref("kategori/"+id).remove();
-
-}
-
-</script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola Kategori - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-xl">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">📁 Tambah Kategori Baru</h2>
+                <form id="form-category" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Kategori</label>
+                        <input type="text" id="cat-name" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Contoh: Elektronik" required>
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Simpan Kategori</button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-xl">
+                <h3 class="font-bold text-slate-800 mb-3">Daftar Kategori Terhubung</h3>
+                <ul id="category-list" class="divide-y divide-slate-100 text-sm">
+                    <li class="text-slate-400">Memuat kategori...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const listKategori = document.getElementById("category-list");
+            const form = document.getElementById("form-category");
+            if (!listKategori || !form) return;
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const nama = document.getElementById("cat-name").value.trim();
+                if(!nama) return;
+
+                const id = database.ref("kategori").push().key;
+                await database.ref("kategori/" + id).set({ nama: nama, createdAt: Date.now() });
+                form.reset();
+                alert("Kategori berhasil ditambahkan dan disinkronkan ke toko!");
+            });
+
+            database.ref("kategori").orderByChild("createdAt").on("value", (snap) => {
+                listKategori.innerHTML = "";
+                if(!snap.exists()) {
+                    listKategori.innerHTML = `<li class="text-slate-400">Belum ada kategori</li>`;
+                    return;
+                }
+                snap.forEach(item => {
+                    let k = item.val();
+                    let namaKat = typeof k === 'object' ? k.nama : k;
+                    listKategori.innerHTML += `
+                        <li class="flex justify-between items-center py-2">
+                            <span class="font-medium text-slate-700">${namaKat}</span>
+                            <div>
+                                <button onclick="editKategori('${item.key}')" class="text-blue-600 hover:underline mr-2">Edit</button>
+                                <button onclick="hapusKategori('${item.key}')" class="text-red-600 hover:underline">Hapus</button>
+                            </div>
+                        </li>
+                    `;
+                });
+            });
+        });
+
+        function editKategori(id){
+            database.ref("kategori/"+id).once("value", (snap) => {
+                let k = snap.val();
+                let valLama = typeof k === 'object' ? k.nama : k;
+                let nama = prompt("Nama kategori baru:", valLama);
+                if(nama == null) return;
+                database.ref("kategori/"+id).update({ nama: nama });
+            });
+        }
+
+        function hapusKategori(id) {
+            if(confirm("Hapus kategori ini?")) {
+                database.ref("kategori/" + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
+```[cite: 1, 2]
+
+---
+
+### 2. File `laporan-checkout.html`
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Checkout - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">📋 Laporan Pesanan Masuk (Realtime)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                                <th class="p-3">ID Order</th>
+                                <th class="p-3">Pelanggan & WA</th>
+                                <th class="p-3">Produk</th>
+                                <th class="p-3">Total</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Waktu</th>
+                                <th class="p-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table" class="divide-y divide-slate-100">
+                            <tr><td colspan="7" class="text-center p-4 text-slate-400">Memuat data pesanan...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const tbody = document.getElementById("orders-table");
+            if (!tbody) return;
+
+            database.ref("orders").orderByChild("createdAt").on("value", (snap) => {
+                tbody.innerHTML = "";
+                if(!snap.exists()) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-slate-400">Belum ada pesanan masuk</td></tr>`;
+                    return;
+                }
+                let data = [];
+                snap.forEach(item => {
+                    data.push({ id: item.key, ...item.val() });
+                });
+                data.reverse();
+
+                data.forEach(o => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 font-medium text-slate-800">${o.orderId || o.id}</td>
+                            <td class="p-3">${o.customerName || "-"}<br><span class="text-xs text-slate-400">${o.customerWa || "-"}</span></td>
+                            <td class="p-3">${o.namaProduk || "-"} (${o.tipe || 'Cash'}) x${o.qty || 1}</td>
+                            <td class="p-3 font-semibold text-blue-600">Rp ${Number(o.total || 0).toLocaleString("id-ID")}</td>
+                            <td class="p-3"><span class="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-semibold">${o.status || "Pending"}</span></td>
+                            <td class="p-3 text-xs text-slate-500">${o.waktu || new Date(o.createdAt || Date.now()).toLocaleString("id-ID")}</td>
+                            <td class="p-3 space-x-2">
+                                <button onclick="ubahStatus('${o.id}')" class="text-blue-600 font-medium hover:underline">Status</button>
+                                <button onclick="hapusOrder('${o.id}')" class="text-red-600 font-medium hover:underline">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        });
+
+        function ubahStatus(id) {
+            database.ref("orders/" + id).once("value", (snap) => {
+                const order = snap.val();
+                const status = prompt("Ubah Status Pesanan (Pending / Diproses / Dikirim / Selesai / Dibatalkan):", order.status || "Pending");
+                if(status == null) return;
+                database.ref("orders/" + id).update({ status: status, updatedAt: Date.now() });
+            });
+        }
+
+        function hapusOrder(id) {
+            if(confirm("Hapus laporan pesanan ini?")) {
+                database.ref("orders/" + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
+```[cite: 3]
+
+---
+
+### 3. File `kelola-user.html`
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelola User - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">👥 Daftar Akun & Pengunjung Toko</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600">
+                                <th class="p-3">Nama Pengguna</th>
+                                <th class="p-3">Kontak / WhatsApp</th>
+                                <th class="p-3">Role / Status</th>
+                                <th class="p-3">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table" class="divide-y divide-slate-100">
+                            <tr><td colspan="4" class="text-center p-4 text-slate-400">Memuat data user...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const tbody = document.getElementById("user-table");
+            if (!tbody) return;
+
+            database.ref("users").on("value", (snap) => {
+                tbody.innerHTML = "";
+                if(!snap.exists()) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-slate-400">Belum ada data user terdaftar</td></tr>`;
+                    return;
+                }
+                snap.forEach(item => {
+                    const u = item.val();
+                    const aktif = u.active !== false;
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-3 font-medium text-slate-800">${u.nama || "-"}</td>
+                            <td class="p-3">${u.email || "-"}</td>
+                            <td class="p-3">
+                                <span class="px-2 py-1 rounded text-xs font-semibold ${aktif ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">
+                                    ${aktif ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                            </td>
+                            <td class="p-3 space-x-2">
+                                <button onclick="toggleUser('${item.key}', ${!aktif})" class="text-amber-600 font-medium hover:underline">${aktif ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                                <button onclick="hapusUser('${item.key}')" class="text-red-600 font-medium hover:underline">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        });
+
+        function toggleUser(id, newStatus) {
+            database.ref("users/" + id).update({ active: newStatus });
+        }
+
+        function hapusUser(id) {
+            if(confirm("Hapus data user ini?")) {
+                database.ref("users/" + id).remove();
+            }
+        }
+    </script>
+</body>
+</html>
+```[cite: 4, 11]
+
+---
+
+### 4. File `pengaturan-toko.html`
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengaturan Toko - MPT Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-100 font-sans">
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col justify-between">
+            <div class="p-5">
+                <h1 class="text-white text-xl font-bold mb-6">🎋 MPT ADMIN</h1>
+                <nav class="space-y-2">
+                    <a href="index.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Dashboard</a>
+                    <a href="tambah-produk.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Tambah Produk</a>
+                    <a href="kelola-katalog.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Katalog</a>
+                    <a href="kelola-kategori.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola Kategori</a>
+                    <a href="laporan-checkout.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Laporan Checkout</a>
+                    <a href="kelola-user.html" class="block py-2.5 px-4 rounded hover:bg-slate-800 transition">Kelola User</a>
+                    <a href="pengaturan-toko.html" class="block py-2.5 px-4 rounded bg-blue-600 text-white font-medium">Pengaturan Toko</a>
+                </nav>
+            </div>
+            <div class="p-5 border-t border-slate-800">
+                <a href="index.html" class="block text-center bg-red-600 hover:bg-red-700 text-white py-2 rounded transition font-medium">Kembali</a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-2xl">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">⚙️ Pengaturan & Status Toko Realtime</h2>
+                <form id="form-settings" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nama Toko</label>
+                        <input type="text" id="store-name" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Nama Toko Anda" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Nomor WhatsApp Admin</label>
+                        <input type="text" id="store-wa" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="628xxxxxxxxxx" required>
+                    </div>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <input type="checkbox" id="store-maintenance" class="w-4 h-4 text-blue-600 border-slate-300 rounded">
+                        <label for="store-maintenance" class="text-sm font-medium text-slate-700">Aktifkan Mode Pemeliharaan (Maintenance Toko)</label>
+                    </div>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition">Simpan & Sinkronkan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHFgI1sxXMxu9umSfCQMLB2j4C2zH87N8",
+            authDomain: "tebingtinggiorder.firebaseapp.com",
+            databaseURL: "https://tebingtinggiorder-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "tebingtinggiorder",
+            storageBucket: "tebingtinggiorder.firebasestorage.app",
+            messagingSenderId: "374470707588",
+            appId: "1:374470707588:web:d1fa72f4832753b401f5d1",
+            measurementId: "G-BPKTES3HPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const form = document.getElementById("form-settings");
+            const inputName = document.getElementById("store-name");
+            const inputWa = document.getElementById("store-wa");
+            const inputMaintenance = document.getElementById("store-maintenance");
+
+            if (!form) return;
+
+            database.ref("settings").on("value", (snap) => {
+                if (snap.exists()) {
+                    const data = snap.val();
+                    if(inputName) inputName.value = data.namaToko || "";
+                    if(inputWa) inputWa.value = data.whatsapp || "";
+                    if(inputMaintenance) inputMaintenance.checked = data.maintenance === true || (data.maintenance && data.maintenance.status === true);
+                }
+            });
+
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
+                try {
+                    await database.ref("settings").update({
+                        namaToko: inputName.value.trim(),
+                        whatsapp: inputWa.value.trim(),
+                        maintenance: inputMaintenance.checked,
+                        updatedAt: Date.now()
+                    });
+                    alert("Pengaturan toko berhasil disimpan dan langsung terhubung ke halaman pengunjung!");
+                } catch (error) {
+                    alert("Gagal menyimpan pengaturan: " + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
